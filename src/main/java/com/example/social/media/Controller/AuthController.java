@@ -26,7 +26,7 @@ public class AuthController {
 
         String otp = OtpUtil.generateOtp();
         otpStore.saveOtp(email, otp);
-        emailService.sendOtp(email, otp);
+        //emailService.sendOtp(email, otp);
 
         return "OTP sent to email";
     }
