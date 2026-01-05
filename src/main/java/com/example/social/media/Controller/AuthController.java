@@ -6,10 +6,10 @@ import com.example.social.media.Service.OtpStore;
 import com.example.social.media.Util.OtpUtil;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,6 +30,20 @@ public class AuthController {
 
         return "OTP sent to email";
     }
+    @GetMapping("/me")
+    public Map<String, String> me(HttpSession session) {
+        String email = (String) session.getAttribute("LOGGED_IN_EMAIL");
+
+        if (email == null) {
+            throw new RuntimeException("Not logged in");
+        }
+
+        Map<String, String> res = new HashMap<>();
+        res.put("email", email);
+
+        return res;
+    }
+
 
     // 2️⃣ VERIFY OTP & CREATE SESSION
     @PostMapping("/verify-otp")
