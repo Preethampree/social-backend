@@ -1,6 +1,8 @@
 package com.example.social.media.Controller;
 
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.example.social.media.model.Comment;
 import com.example.social.media.model.Post;
 import com.example.social.media.model.User;
@@ -17,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RequestMapping("/api/posts")
 @AllArgsConstructor
@@ -25,50 +28,62 @@ public class PostController {
 
     private PostRepository postRepository;
     private UserRepository userRepository;
+    private Cloudinary cloudinary;   // ✅ Cloudinary injected
 
 
 
     @PostMapping(consumes = "multipart/form-data")
     public Post createPost(
-            @RequestParam("username") String username,
-            @RequestParam("description") String description,
-            @RequestParam("image") MultipartFile image
+            @RequestParam String username,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) MultipartFile image
     ) throws IOException {
 
-        String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
-        Path path = Paths.get("uploads/"+ fileName);
-        Files.write(path, image.getBytes());
+        String imageUrl = null;
+
+        // ✅ Upload image ONLY if present
+        if (image != null && !image.isEmpty()) {
+            Map uploadResult = cloudinary.uploader().upload(
+                    image.getBytes(),
+                    ObjectUtils.emptyMap()
+            );
+            imageUrl = uploadResult.get("secure_url").toString();
+        }
 
         Post post = Post.builder()
                 .username(username)
-                .description(description)
-                .imagePath("/uploads/" + fileName)
+                .description(description)   // can be null
+                .imagePath(imageUrl)        // can be null
                 .createdAt(LocalDateTime.now())
                 .build();
 
         return postRepository.save(post);
     }
+
 
 
 
     @PostMapping("/{postId}/comments")
     public Post addComment(
-            @PathVariable("postId") String postId,
-            @RequestParam("username") String username,
-            @RequestParam("comment") String text
+            @PathVariable String postId,
+            @RequestParam String username,
+            @RequestParam String comment
     ) {
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        Comment comment = Comment.builder()
+        Comment newComment = Comment.builder()
                 .username(username)
-                .text(text)
+                .text(comment)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        post.getComments().add(comment);
+        post.getComments().add(newComment);
         return postRepository.save(post);
     }
+
+
 
     @GetMapping
     public List<Post> getAllPosts(HttpSession session) {

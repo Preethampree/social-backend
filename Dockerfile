@@ -1,12 +1,27 @@
-FROM eclipse-temurin:21-jdk
-
+# ---------- BUILD STAGE ----------
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-COPY . .
+# Copy pom and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-RUN chmod +x mvnw
-RUN ./mvnw clean package -DskipTests
+# Copy source code
+COPY src ./src
 
+# Build jar
+RUN mvn clean package -DskipTests
+
+
+# ---------- RUNTIME STAGE ----------
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+
+# Copy jar from build stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Expose port
 EXPOSE 8080
 
-CMD ["java", "-jar", "target/social-media-0.0.1-SNAPSHOT.jar"]
+# Run application
+ENTRYPOINT ["java","-jar","app.jar"]
